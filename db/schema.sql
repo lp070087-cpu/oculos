@@ -25,3 +25,6 @@ CREATE TABLE coupons (code text PRIMARY KEY, kind text NOT NULL, value numeric N
 CREATE TABLE conversations (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid REFERENCES customers(id), wa_id text UNIQUE, mode text NOT NULL DEFAULT 'humano', tags text[] NOT NULL DEFAULT '{}', assignee text);
 CREATE TABLE messages (id text PRIMARY KEY, conversation_id uuid REFERENCES conversations(id) ON DELETE CASCADE, author text NOT NULL, body text NOT NULL, at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE campaigns (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL, template_name text, audience text, status text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+
+-- Configuração de integrações. Tokens do Melhor Envio ficam cifrados em AES-256-GCM.
+CREATE TABLE integration_settings (key text PRIMARY KEY, value text NOT NULL, updated_at timestamptz NOT NULL DEFAULT now());

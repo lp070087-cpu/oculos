@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { brl, imgUrl } from '@/lib/catalog'
 import { demo } from '@/lib/demo/store'
 import { fmtDateTime } from '@/lib/ui'
-import { Modal, ORDER_LABEL, PAY_LABEL, Pill, orderTone, payTone } from '@/components/ui'
+import { Modal, ORDER_LABEL, SHIP_LABEL, PAY_LABEL, Pill, orderTone, payTone } from '@/components/ui'
 import type { DemoState, OrderStatus, PaymentStatus } from '@/lib/demo/types'
 
 const STATUSES = Object.keys(ORDER_LABEL) as OrderStatus[]
@@ -67,6 +67,28 @@ export function Orders({ s }: { s: DemoState }) {
                   </select>
                 </label>
               </div>
+            </div>
+            <div className="panel" style={{ padding: 12 }}>
+              <div className="panel-h" style={{ marginBottom: 6 }}>
+                Entrega
+                <span style={{ display: 'flex', gap: 6 }}>
+                  {current.shippingOption?.source === 'demo' && <span className="ship-demo">DEMO</span>}
+                  <Pill>{SHIP_LABEL[current.shipment?.status ?? 'aguardando']}</Pill>
+                </span>
+              </div>
+              <ul className="list-rows">
+                <li><span>Modalidade<small>{current.shippingOption ? `${current.shippingOption.company} · ${current.shippingOption.deadline}` : 'Regra anterior da loja'}</small></span><b>{current.shippingOption?.service ?? 'Frete fixo'}</b></li>
+                <li><span>Frete</span><b>{brl(current.shipping)}</b></li>
+                {current.destCep && <li><span>CEP de destino</span><b>{current.destCep}</b></li>}
+                {current.tracking && <li><span>Rastreamento</span><b>{current.tracking}</b></li>}
+              </ul>
+              {current.delivery === 'entrega' && (
+                <div className="app-actions" style={{ marginTop: 10 }}>
+                  {(current.shipment?.status ?? 'aguardando') === 'aguardando' && <button className="btn btn-ghost btn-sm" onClick={() => demo.prepareShipment(current.id)}>Preparar envio</button>}
+                  {current.shipment?.status === 'preparado' && <button className="btn btn-sm" onClick={() => demo.generateDemoLabel(current.id)}>Gerar etiqueta simulada</button>}
+                </div>
+              )}
+              <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>Etiqueta simulada: não compra frete e não usa saldo. A etiqueta real depende da conta conectada, saldo, nota fiscal ou declaração de conteúdo.</p>
             </div>
             <ul className="list-rows">
               {current.items.map((i) => <li key={i.slug}><span className="prod-cell"><img src={imgUrl(i.image)} alt="" /><span>{i.name}<small>{i.qty} × {brl(i.price)}</small></span></span><b>{brl(i.qty * i.price)}</b></li>)}

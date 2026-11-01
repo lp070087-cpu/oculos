@@ -4,7 +4,7 @@ import { useEffect, useSyncExternalStore } from 'react'
 import { PRODUCTS, bySlug, imgUrl, type Product } from '@/lib/catalog'
 import { STORE } from '@/lib/store-facts'
 import { seed } from './seed'
-import type { Campaign, Conversation, Coupon, Customer, DemoState, Order, OrderStatus, PaymentStatus, ProductPatch } from './types'
+import type { Campaign, Conversation, Coupon, Customer, DemoState, Order, OrderStatus, PaymentStatus, ProductPatch, ShippingConfig, ShippingOption } from './types'
 
 /**
  * Repositório local da demonstração: localStorage + BroadcastChannel.
@@ -159,10 +159,10 @@ export const demo = {
     set((s) => ({ customers: s.customers.map((c) => (c.id === id ? { ...c, ...patch } : c)) }))
   },
 
-  placeOrder(input: { name: string; business?: string; email: string; phone: string; city: string; delivery: 'entrega' | 'retirada'; address?: string; payment: Order['payment'] }) {
+  placeOrder(input: { name: string; business?: string; email: string; phone: string; city: string; delivery: 'entrega' | 'retirada'; address?: string; destCep?: string; shippingOption: ShippingOption; payment: Order['payment'] }) {
     const s0 = state
     const sum = cartSummary(s0)
-    const shipping = input.delivery === 'entrega' ? STORE.shipping : 0
+    const shipping = input.shippingOption.price
     const number = s0.orders.reduce((m, o) => Math.max(m, Number(o.id.split('-')[1]) || 0), 1000) + 1
     const now = Date.now()
     let customer = me(s0) ?? s0.customers.find((c) => c.email === input.email)
@@ -174,7 +174,8 @@ export const demo = {
       id: `DEMO-${number}`, createdAt: now, customerId: customer.id, customerName: input.name, phone: input.phone,
       items: sum.lines.map((l) => ({ slug: l.slug, name: l.product.name, image: l.product.image.startsWith('/') ? l.product.image : imgUrl(l.product.image), qty: l.qty, price: l.product.price })),
       subtotal: sum.subtotal, discount: sum.discount, shipping, total: sum.subtotal - sum.discount + shipping,
-      coupon: sum.coupon?.code, delivery: input.delivery, address: input.address, payment: input.payment,
+      coupon: sum.coupon?.code, delivery: input.delivery, address: input.address, destCep: input.destCep, shippingOption: input.shippingOption,
+      shipment: { status: 'aguardando', simulated: true }, payment: input.payment,
       paymentStatus: input.payment === 'whatsapp' ? 'pendente' : 'pago', status: 'novo', source: 'site',
       history: [{ at: now, text: 'Pedido de teste recebido pelo site' }],
     }
@@ -207,6 +208,20 @@ export const demo = {
       }
     })
   },
+  prepareShipment(id: string) {
+    set((s) => ({ orders: s.orders.map((x) => (x.id === id ? { ...x, shipment: { status: 'preparado' as const, simulated: true }, history: [...x.history, { at: Date.now(), text: 'Envio preparado (demonstração)' }] } : x)) }))
+  },
+  /** Nunca chama a API: na demonstração não há compra de frete nem uso de saldo. */
+  generateDemoLabel(id: string) {
+    set((s) => ({
+      orders: s.orders.map((x) => {
+        if (x.id !== id) return x
+        const label = `DEMO${String(Date.now()).slice(-8)}`
+        return { ...x, tracking: label, shipment: { status: 'etiqueta' as const, label, simulated: true }, history: [...x.history, { at: Date.now(), text: `Etiqueta simulada ${label}, sem cobrança` }] }
+      }),
+    }))
+  },
+  setShippingConfig(patch: Partial<ShippingConfig>) { set((s) => ({ shipping: { ...s.shipping, ...patch } })) },
   setPaymentStatus(id: string, paymentStatus: PaymentStatus) {
     set((s) => ({ orders: s.orders.map((x) => (x.id === id ? { ...x, paymentStatus, history: [...x.history, { at: Date.now(), text: `Pagamento marcado como ${paymentStatus}` }] } : x)) }))
   },

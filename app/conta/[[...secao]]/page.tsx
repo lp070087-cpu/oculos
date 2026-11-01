@@ -167,6 +167,7 @@ function OrderDetail({ s, id }: { s: DemoState; id: string }) {
       <section className="panel">
         <div className="panel-h">Status da entrega <Pill tone={orderTone(o.status)}>{ORDER_LABEL[o.status]}</Pill></div>
         <div className="steps">{FLOW.map((f, i) => <div key={f} className={i <= at ? 'on' : ''}>{ORDER_LABEL[f]}</div>)}</div>
+        {o.shippingOption && <p className="muted" style={{ fontSize: 14 }}>{o.shippingOption.service} · {o.shippingOption.deadline}{o.shippingOption.source === 'demo' ? ' · DEMO' : ''}</p>}
         {o.tracking && <p className="muted" style={{ fontSize: 14 }}>Rastreio de demonstração: {o.tracking}</p>}
       </section>
       <div className="cols" style={{ marginTop: 20 }}>

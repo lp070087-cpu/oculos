@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, PlayCircle, Store, UserRound } from 'lucide-react'
 import { useUi } from '@/lib/ui'
-import type { OrderStatus, PaymentStatus } from '@/lib/demo/types'
+import type { OrderStatus, PaymentStatus, ShipmentStatus } from '@/lib/demo/types'
 
 export function Logo({ size = 40 }: { size?: number }) {
   return (
@@ -80,6 +80,8 @@ export function DemoBar() {
 
 export const ORDER_LABEL: Record<OrderStatus, string> = { novo: 'Novo', separacao: 'Em separação', enviado: 'Enviado', entregue: 'Entregue', cancelado: 'Cancelado' }
 export const PAY_LABEL: Record<PaymentStatus, string> = { pendente: 'Pendente', pago: 'Pago (teste)', recusado: 'Recusado' }
+
+export const SHIP_LABEL: Record<ShipmentStatus, string> = { aguardando: 'Aguardando preparo', preparado: 'Envio preparado', etiqueta: 'Etiqueta simulada', postado: 'Postado', entregue: 'Entregue' }
 
 export function Pill({ tone = 'neutral', children }: { tone?: 'neutral' | 'gold' | 'ok' | 'warn' | 'bad' | 'violet'; children: React.ReactNode }) {
   return <span className={`pill pill-${tone}`}>{children}</span>

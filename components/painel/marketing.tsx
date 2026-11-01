@@ -14,8 +14,7 @@ const AUDIENCES: Record<string, (seg: string) => boolean> = {
   'Novos com consentimento': (s) => s === 'Novo',
 }
 const BANNERS = [
-  { id: 'new-frequency', name: 'The New Frequency' },
-  { id: 'night-energy', name: 'Night Energy' },
+  { id: 'new-frequency', name: 'Seu estilo. Sem fronteiras.' },
   { id: 'your-frequency', name: 'Your Style. Your Frequency.' },
 ]
 

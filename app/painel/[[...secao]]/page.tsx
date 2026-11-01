@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useEffect, useRef } from 'react'
-import { BarChart3, Boxes, LayoutDashboard, Megaphone, MessageCircle, Package, Settings, Store, Users } from 'lucide-react'
+import { BarChart3, Boxes, LayoutDashboard, Megaphone, MessageCircle, Package, Settings, Store, Truck, Users } from 'lucide-react'
 import { brl } from '@/lib/catalog'
 import { demo, useDemo, useHydrated } from '@/lib/demo/store'
 import { toast } from '@/lib/ui'
@@ -14,6 +14,7 @@ import { Products } from '@/components/painel/products'
 import { Customers } from '@/components/painel/customers'
 import { Marketing } from '@/components/painel/marketing'
 import { WhatsApp } from '@/components/painel/whatsapp'
+import { ShippingSettings } from '@/components/painel/shipping'
 
 const NAV = [
   { id: '', label: 'Visão geral', Icon: LayoutDashboard },
@@ -23,6 +24,7 @@ const NAV = [
   { id: 'financeiro', label: 'Financeiro', Icon: BarChart3 },
   { id: 'marketing', label: 'Marketing', Icon: Megaphone },
   { id: 'whatsapp', label: 'Central WhatsApp', Icon: MessageCircle },
+  { id: 'configuracoes/entregas/melhor-envio', label: 'Entregas', Icon: Truck },
   { id: 'ajustes', label: 'Ajustes da demo', Icon: Settings },
 ]
 
@@ -30,7 +32,7 @@ export default function Panel() {
   const { secao } = useParams<{ secao?: string[] }>()
   const s = useDemo()
   const ready = useHydrated()
-  const section = secao?.[0] ?? ''
+  const section = secao?.join('/') ?? ''
   const newOrders = s.orders.filter((o) => o.status === 'novo').length
   const unread = s.conversations.reduce((n, c) => n + c.unread, 0)
 
@@ -72,6 +74,7 @@ export default function Panel() {
         {section === 'financeiro' && <Finance s={s} />}
         {section === 'marketing' && <Marketing s={s} />}
         {section === 'whatsapp' && <WhatsApp s={s} />}
+        {section === 'configuracoes/entregas/melhor-envio' && <ShippingSettings s={s} />}
         {section === 'ajustes' && (
           <>
             <header className="app-top"><div><h1>Ajustes da demo</h1><p>Volte ao estado inicial antes de cada apresentação</p></div></header>

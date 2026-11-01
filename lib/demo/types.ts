@@ -1,6 +1,29 @@
 export type OrderStatus = 'novo' | 'separacao' | 'enviado' | 'entregue' | 'cancelado'
 export type PaymentStatus = 'pendente' | 'pago' | 'recusado'
 
+export type ShippingOption = {
+  id: string
+  company: string
+  service: string
+  price: number
+  deadline: string
+  source: 'fixo' | 'retirada' | 'demo' | 'melhorenvio'
+}
+
+export type ShipmentStatus = 'aguardando' | 'preparado' | 'etiqueta' | 'postado' | 'entregue'
+export type Shipment = { status: ShipmentStatus; label?: string; simulated: boolean }
+
+export type ShippingConfig = {
+  mode: 'fixo' | 'calculado'
+  originCep: string
+  height: number
+  width: number
+  length: number
+  weight: number
+  services: string[]
+  demoConnection: 'desconectado' | 'conectado' | 'expirado'
+}
+
 export type OrderItem = { slug: string; name: string; image: string; qty: number; price: number }
 export type OrderEvent = { at: number; text: string }
 
@@ -18,6 +41,9 @@ export type Order = {
   coupon?: string
   delivery: 'entrega' | 'retirada'
   address?: string
+  destCep?: string
+  shippingOption?: ShippingOption
+  shipment?: Shipment
   payment: 'pix' | 'cartao' | 'whatsapp'
   paymentStatus: PaymentStatus
   status: OrderStatus
@@ -96,5 +122,6 @@ export type DemoState = {
   patches: Record<string, ProductPatch>
   created: NewProduct[]
   whatsapp: { step: 0 | 1 | 2 | 3 }
+  shipping: ShippingConfig
   lowStockAt: number
 }

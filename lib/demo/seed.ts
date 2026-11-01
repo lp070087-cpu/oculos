@@ -90,7 +90,7 @@ export const seedStock = () =>
   Object.fromEntries(PRODUCTS.map((p, i) => [p.slug, p.soldOut ? 0 : [38, 24, 12, 60, 4, 18, 9, 31, 3, 44, 15, 27][i % 12]]))
 
 export const seed = (): DemoState => ({
-  version: 1,
+  version: 2,
   cart: [],
   savedCart: [{ slug: P[10], qty: 3 }, { slug: P[33], qty: 3 }],
   favorites: [],
@@ -125,5 +125,6 @@ export const seed = (): DemoState => ({
   patches: {},
   created: [],
   whatsapp: { step: 0 },
+  shipping: { mode: 'fixo', originCep: '', height: 8, width: 16, length: 20, weight: 0.08, services: ['demo-eco', 'demo-exp'], demoConnection: 'desconectado' },
   lowStockAt: 5,
 })

@@ -3,21 +3,15 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react'
-import { FloatingGlasses } from './glasses'
 
 const SLIDES = [
   {
-    id: 'new-frequency', tag: 'Campanha 01', title: ['THE NEW', 'FREQUENCY'],
-    text: 'Cor, metal e reflexo. A linha Juliet na mão de quem revende.',
-    cta: 'Explorar a coleção', href: '/produtos',
+    id: 'new-frequency', tag: 'Campanha 01', title: ['SEU ESTILO.', 'SEM FRONTEIRAS.'], size: 'xs', flag: ['ENVIAMOS PARA', 'TODO O BRASIL'],
+    text: 'Da nossa loja para todo o Brasil. Escolha seus modelos favoritos, monte seu pedido e receba onde estiver.',
+    cta: 'Explorar coleção', href: '/produtos',
   },
   {
-    id: 'night-energy', tag: 'Campanha 02', title: ['NIGHT', 'ENERGY'],
-    text: 'Edição limitada para quem chega com o som já alto.',
-    cta: 'Ver lançamentos', href: '/produtos?lancamentos=1',
-  },
-  {
-    id: 'your-frequency', tag: 'Campanha 03', title: ['YOUR STYLE.', 'YOUR', 'FREQUENCY.'],
+    id: 'your-frequency', tag: 'Campanha 02', title: ['YOUR STYLE.', 'YOUR', 'FREQUENCY.'], size: 'sm',
     text: 'Monte seu pedido com 6 peças, misture os modelos e receba em todo o Brasil.',
     cta: 'Conhecer os produtos', href: '/produtos',
   },
@@ -28,7 +22,6 @@ export function Hero() {
   const [i, setI] = useState(0)
   const [paused, setPaused] = useState(false)
   const [hold, setHold] = useState(false)
-  const [dragging, setDragging] = useState(false)
   const [reduced, setReduced] = useState(false)
   const [mobile, setMobile] = useState(false)
   const [ready, setReady] = useState(false)
@@ -46,10 +39,10 @@ export function Hero() {
   useEffect(() => { if (reduced) setPaused(true) }, [reduced])
 
   useEffect(() => {
-    if (paused || hold || dragging) return
+    if (paused || hold) return
     const t = setTimeout(() => setI((v) => (v + 1) % SLIDES.length), DURATION)
     return () => clearTimeout(t)
-  }, [i, paused, hold, dragging])
+  }, [i, paused, hold])
 
   useEffect(() => {
     videos.current.forEach((v, n) => {
@@ -80,10 +73,10 @@ export function Hero() {
               <source src={`/banners/${s.id}-${f}.mp4`} type="video/mp4" />
             </video>
           )}
-          {n === 0 && <FloatingGlasses active={i === 0} onDrag={setDragging} />}
+          {s.flag && <p className="hero-flag">{s.flag.map((t) => <span key={t}>{t}</span>)}</p>}
           <div className="hero-copy">
             <span className="eyebrow">{s.tag}</span>
-            <h2 className={`hero-title ${s.title.length > 2 ? 'hero-title-sm' : ''}`}>
+            <h2 className={`hero-title hero-title-${s.size}`}>
               {s.title.map((t, k) => <span key={t}><i style={{ transitionDelay: `${120 + k * 90}ms` }}>{t}</i></span>)}
             </h2>
             <p>{s.text}</p>

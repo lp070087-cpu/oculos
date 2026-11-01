@@ -31,6 +31,14 @@ Para repetir a apresentação do zero, use **Restaurar demonstração** em `/dem
 
 **Depende de integração oficial:** Cloud API da Meta, modelos aprovados, gateway de pagamento, banco Neon, autenticação real e transportadora.
 
+## Melhor Envio
+
+Painel em `/painel/configuracoes/entregas/melhor-envio`. Sem credenciais, tudo é simulado e identificado como DEMO.
+
+Para ativar: crie o aplicativo em Integrações > Área Dev. no Melhor Envio, com callback igual a `MELHOR_ENVIO_REDIRECT_URI`; aplique `db/schema.sql`; preencha as variáveis de `.env.example` no servidor. Comece em `sandbox`, que usa conta e aplicativo próprios.
+
+O frete fixo de R$ 40 continua padrão até o administrador escolher frete calculado. A compra de etiqueta consome saldo da carteira e fica bloqueada até `MELHOR_ENVIO_ALLOW_PURCHASE=true`. Enquanto os pedidos ficarem só no navegador, a geração real de etiquetas não está ligada à tela de pedidos: isso exige pedidos no banco.
+
 ## Grupos do WhatsApp
 
 Pela documentação da Meta atualizada em 15/10/2026, a API de Grupos tem limite de 8 participantes, exige conta comercial oficial (OBA) e cria grupos próprios por convite. Não serve para publicar em grupos grandes já existentes. O painel apresenta alternativas compatíveis.
