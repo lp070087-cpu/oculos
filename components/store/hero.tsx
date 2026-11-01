@@ -3,13 +3,10 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react'
+import { BrandSlide } from './hero-brand'
 
-const SLIDES = [
-  {
-    id: 'new-frequency', tag: 'Campanha 01', title: ['SEU ESTILO.', 'SEM FRONTEIRAS.'], size: 'xs', flag: ['ENVIAMOS PARA', 'TODO O BRASIL'],
-    text: 'Da nossa loja para todo o Brasil. Escolha seus modelos favoritos, monte seu pedido e receba onde estiver.',
-    cta: 'Explorar coleção', href: '/produtos',
-  },
+const SLIDES: { id: string; tag?: string; title?: string[]; size?: string; text?: string; cta?: string; href?: string }[] = [
+  { id: 'marca' },
   {
     id: 'your-frequency', tag: 'Campanha 02', title: ['YOUR STYLE.', 'YOUR', 'FREQUENCY.'], size: 'sm',
     text: 'Monte seu pedido com 6 peças, misture os modelos e receba em todo o Brasil.',
@@ -57,11 +54,15 @@ export function Hero() {
 
   return (
     <section
-      className="hero" aria-roledescription="carrossel" aria-label="Campanhas"
+      className={`hero ${SLIDES[i].id === 'marca' ? 'hero-light' : ''}`} aria-roledescription="carrossel" aria-label="Campanhas"
       onMouseEnter={() => setHold(true)} onMouseLeave={() => setHold(false)}
       onFocusCapture={() => setHold(true)} onBlurCapture={() => setHold(false)}
     >
-      {SLIDES.map((s, n) => (
+      {SLIDES.map((s, n) => (s.id === 'marca' ? (
+        <div key={s.id} className={`hero-slide ${n === i ? 'on' : ''}`} aria-hidden={n !== i} aria-roledescription="slide" aria-label={`${n + 1} de ${SLIDES.length}`}>
+          <BrandSlide active={n === i} />
+        </div>
+      ) : (
         <div key={s.id} className={`hero-slide ${n === i ? 'on' : ''}`} aria-hidden={n !== i} aria-roledescription="slide" aria-label={`${n + 1} de ${SLIDES.length}`}>
           <picture>
             <source media="(max-width: 760px)" srcSet={`/banners/${s.id}-mobile.webp`} />
@@ -73,17 +74,16 @@ export function Hero() {
               <source src={`/banners/${s.id}-${f}.mp4`} type="video/mp4" />
             </video>
           )}
-          {s.flag && <p className="hero-flag">{s.flag.map((t) => <span key={t}>{t}</span>)}</p>}
           <div className="hero-copy">
             <span className="eyebrow">{s.tag}</span>
             <h2 className={`hero-title hero-title-${s.size}`}>
-              {s.title.map((t, k) => <span key={t}><i style={{ transitionDelay: `${120 + k * 90}ms` }}>{t}</i></span>)}
+              {s.title?.map((t, k) => <span key={t}><i style={{ transitionDelay: `${120 + k * 90}ms` }}>{t}</i></span>)}
             </h2>
             <p>{s.text}</p>
-            <Link className="btn" href={s.href} tabIndex={n === i ? 0 : -1}>{s.cta} <ArrowRight size={17} aria-hidden /></Link>
+            <Link className="btn" href={s.href ?? '/produtos'} tabIndex={n === i ? 0 : -1}>{s.cta} <ArrowRight size={17} aria-hidden /></Link>
           </div>
         </div>
-      ))}
+      )))}
       <div className="hero-ctrl">
         <div className="hero-dots" role="tablist" aria-label="Escolher campanha">
           {SLIDES.map((s, n) => (

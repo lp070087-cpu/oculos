@@ -55,4 +55,6 @@ Pela documentação da Meta atualizada em 15/10/2026, a API de Grupos tem limite
 
 ## Banners
 
+O carrossel usa o banner 1, feito só com tipografia e vetores em `components/store/hero-brand.tsx`, e a campanha fotográfica. Os arquivos abaixo incluem campanhas fora do carrossel.
+
 Três campanhas em desktop e mobile (`public/banners/`, WebM, MP4 e WebP), renderizadas com fotos reais da loja em HTML/Canvas, Chrome headless e ffmpeg. O Canva gerou apenas uma placa de luz usada como névoa no Banner 01. Nano Banana não estava disponível.
