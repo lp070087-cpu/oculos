@@ -1,7 +1,9 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 import { brl } from '@/lib/catalog'
+import { AbandonedCarts } from '@/components/painel/carts'
 import { demo } from '@/lib/demo/store'
 import { fmtDate, toast } from '@/lib/ui'
 import { Pill } from '@/components/ui'
@@ -18,15 +20,22 @@ const BANNERS = [
   { id: 'your-frequency', name: 'Your Style. Your Frequency.' },
 ]
 
-export function Marketing({ s }: { s: DemoState }) {
-  const [tab, setTab] = useState<'campanhas' | 'cupons' | 'banners'>('campanhas')
+const TABS = [['', 'Campanhas'], ['cupons', 'Cupons'], ['banners', 'Banners'], ['carrinhos-abandonados', 'Carrinhos abandonados']] as const
+
+export function Marketing({ s, tab = '' }: { s: DemoState; tab?: string }) {
   return (
     <>
-      <header className="app-top"><div><h1>Marketing</h1><p>Nada é enviado: as campanhas aqui são apenas simuladas</p></div></header>
-      <div className="chips" style={{ marginBottom: 16 }}>
-        {(['campanhas', 'cupons', 'banners'] as const).map((t) => <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{t[0].toUpperCase() + t.slice(1)}</button>)}
-      </div>
-      {tab === 'campanhas' && <Campaigns s={s} />}
+      <header className="app-top">
+        <div>
+          <h1>{tab === 'carrinhos-abandonados' ? 'Carrinhos abandonados' : 'Marketing'}</h1>
+          <p>{tab === 'carrinhos-abandonados' ? 'Recuperação com consentimento, pela integração oficial do WhatsApp' : 'Nada é enviado: as campanhas aqui são apenas simuladas'}</p>
+        </div>
+      </header>
+      <nav className="chips" style={{ marginBottom: 16 }} aria-label="Marketing">
+        {TABS.map(([id, label]) => <Link key={id} href={`/painel/marketing${id ? `/${id}` : ''}`} className={tab === id ? 'on' : ''} aria-current={tab === id ? 'page' : undefined}>{label}</Link>)}
+      </nav>
+      {tab === 'carrinhos-abandonados' && <AbandonedCarts s={s} />}
+      {tab === '' && <Campaigns s={s} />}
       {tab === 'cupons' && <Coupons s={s} />}
       {tab === 'banners' && (
         <div className="cols cols-even">

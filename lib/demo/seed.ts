@@ -1,6 +1,6 @@
 import { PRODUCTS, bySlug, imgUrl } from '@/lib/catalog'
 import { STORE } from '@/lib/store-facts'
-import type { Conversation, Customer, DemoState, Order, OrderItem } from './types'
+import type { CartLine, Conversation, Customer, DemoState, Order, OrderItem, RecoveryAttempt, TrackedCart } from './types'
 
 /** Todos os clientes, pedidos, estoques e conversas abaixo são FICTÍCIOS. */
 const BASE = Date.UTC(2026, 9, 31, 15, 0, 0)
@@ -8,7 +8,7 @@ const H = 3_600_000
 const D = 24 * H
 
 const customer = (id: string, name: string, business: string, city: string, segment: Customer['segment'], days: number, consent = true, notes = ''): Customer => ({
-  id, name, business, city, segment, notes, marketingConsent: consent,
+  id, name, business, city, segment, notes, marketingConsent: consent, consentAt: consent ? BASE - days * D : undefined,
   email: `${id}@exemplo.test`,
   phone: `(11) 90000-${id.slice(-2).padStart(4, '0')}`,
   addresses: [{ id: `${id}-a`, label: 'Loja', line: 'Rua Exemplo, 100', city, zip: '00000-000' }],
@@ -86,6 +86,43 @@ const conversations: Conversation[] = [
   },
 ]
 
+const cartLine = (i: number, qty: number): CartLine => {
+  const p = bySlug(P[i % P.length]) ?? PRODUCTS[0]
+  return { slug: p.slug, name: p.family, variant: p.variant, image: imgUrl(p.image), qty, price: p.price }
+}
+
+/**
+ * Carrinhos FICTÍCIOS para a demonstração de recuperação. Os recentes são relativos ao momento em que a demo
+ * é carregada ou restaurada. O único recuperado aponta para o pedido DEMO-1013 que já existe: nenhuma venda nova.
+ */
+function seedCarts(): TrackedCart[] {
+  const now = Date.now()
+  const M = 60_000
+  const cart = (id: string, customerId: string | undefined, picks: [number, number][], idleMin: number, extra: Partial<TrackedCart> = {}): TrackedCart => {
+    const lines = picks.map(([i, q]) => cartLine(i, q))
+    const lastActivity = now - idleMin * M
+    return { id, customerId, lines, total: lines.reduce((n, l) => n + l.qty * l.price, 0), createdAt: lastActivity - 40 * M, lastActivity, resumeToken: `demo-${id.slice(9)}`, attempts: [], ...extra }
+  }
+  const sent = (at: number, name: string, result: RecoveryAttempt['result'], note: string): RecoveryAttempt => ({
+    id: `att-${at}`, at, channel: 'whatsapp', mode: 'modelo', result, note,
+    text: `Olá, ${name}! Tudo bem? 😊 Vimos que você selecionou alguns modelos na Oliveira OKL, mas ainda não concluiu seu pedido. Se precisar de ajuda com os produtos ou com a entrega, estamos por aqui!\n\nPara não receber mais mensagens, responda SAIR.`,
+  })
+  const theoOrder = orders.find((o) => o.id === 'DEMO-1013')!
+  return [
+    cart('car-demo-lia', 'demo-05', [[5, 6], [8, 4]], 75),
+    cart('car-demo-anon', undefined, [[13, 3], [17, 3]], 190),
+    cart('car-demo-bia', 'demo-03', [[20, 6]], 300, { attempts: [sent(now - 250 * M, 'Bia', 'preparada', 'Mensagem preparada, ainda não enviada')] }),
+    cart('car-demo-caio', 'demo-02', [[11, 6], [0, 2]], 26 * 60, { attempts: [sent(now - 20 * 60 * M, 'Caio', 'simulada', 'Envio simulado na demonstração: nada saiu pelo WhatsApp')] }),
+    cart('car-demo-nina', 'demo-07', [[24, 6], [26, 6]], 2 * 24 * 60),
+    {
+      ...cart('car-demo-theo', 'demo-04', [[32, 4]], 0),
+      createdAt: BASE - 28 * H, lastActivity: BASE - 27 * H, abandonedAt: BASE - 26 * H,
+      orderId: theoOrder.id, convertedAt: theoOrder.createdAt,
+      attempts: [sent(BASE - 25 * H, 'Théo', 'simulada', 'Envio simulado na demonstração: nada saiu pelo WhatsApp')],
+    },
+  ]
+}
+
 export const seedStock = () =>
   Object.fromEntries(PRODUCTS.map((p, i) => [p.slug, p.soldOut ? 0 : [38, 24, 12, 60, 4, 18, 9, 31, 3, 44, 15, 27][i % 12]]))
 
@@ -127,4 +164,8 @@ export const seed = (): DemoState => ({
   whatsapp: { step: 0 },
   shipping: { mode: 'fixo', originCep: '', height: 8, width: 16, length: 20, weight: 0.08, services: ['demo-eco', 'demo-exp'], demoConnection: 'desconectado' },
   lowStockAt: 5,
+  salesGoal: 500,
+  carts: seedCarts(),
+  cartId: null,
+  recovery: { idleMinutes: 60 },
 })

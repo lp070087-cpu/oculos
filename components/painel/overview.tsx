@@ -4,8 +4,9 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { brl, imgUrl } from '@/lib/catalog'
 import { catalog } from '@/lib/demo/store'
-import { fmtDate, fmtDateTime, toast } from '@/lib/ui'
+import { fmtDateTime, toast } from '@/lib/ui'
 import { ORDER_LABEL, Pill, orderTone } from '@/components/ui'
+import { GoalSetting, SalesChart } from '@/components/painel/chart'
 import type { DemoState, Order } from '@/lib/demo/types'
 
 const DAY = 86_400_000
@@ -23,26 +24,6 @@ function series(s: DemoState, days: number, offset = 0) {
     const list = s.orders.filter((o) => valid(o) && o.createdAt > from && o.createdAt <= to)
     return { to, value: list.reduce((n, o) => n + o.total, 0), count: list.length }
   })
-}
-
-function Bars({ data, compare }: { data: { to: number; value: number }[]; compare?: { value: number }[] }) {
-  const max = Math.max(1, ...data.map((d) => d.value), ...(compare ?? []).map((d) => d.value))
-  return (
-    <>
-      <div className="bars" role="img" aria-label={`Vendas por dia, máximo de ${brl(max)}`}>
-        {data.map((d, i) => (
-          <div key={i} title={`${fmtDate(d.to)}: ${brl(d.value)}`}>
-            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', gap: 1, height: '100%' }}>
-              {compare && <i className="alt" style={{ flex: 1, height: `${(compare[i].value / max) * 100}%` }} />}
-              <i style={{ flex: 1, height: `${(d.value / max) * 100}%` }} />
-            </div>
-            <span>{new Date(d.to).getUTCDate()}</span>
-          </div>
-        ))}
-      </div>
-      <div className="legend"><span><i />Período atual</span>{compare && <span><i className="alt" />Período anterior</span>}</div>
-    </>
-  )
 }
 
 export function Overview({ s }: { s: DemoState }) {
@@ -69,7 +50,7 @@ export function Overview({ s }: { s: DemoState }) {
       </div>
       <div className="cols">
         <div>
-          <section className="panel"><h2>Vendas por dia</h2><Bars data={sales} /></section>
+          <section className="panel"><div className="panel-h">Vendas por dia <GoalSetting goal={s.salesGoal} /></div><SalesChart data={sales} goal={s.salesGoal} /></section>
           <section className="panel">
             <div className="panel-h">Pedidos recentes <Link className="text-btn" href="/painel/pedidos">Ver todos</Link></div>
             <div className="tbl-wrap">
@@ -139,7 +120,7 @@ export function Finance({ s }: { s: DemoState }) {
         <div className="kpi"><span>Frete cobrado</span><b>{brl(s.orders.filter(valid).reduce((n, o) => n + o.shipping, 0))}</b></div>
       </div>
       <div className="cols">
-        <section className="panel"><h2>Comparativo</h2><Bars data={cur} compare={prev} /></section>
+        <section className="panel"><div className="panel-h">Comparativo <GoalSetting goal={s.salesGoal} /></div><SalesChart data={cur} compare={prev} goal={s.salesGoal} /></section>
         <section className="panel">
           <h2>Por forma de pagamento</h2>
           <ul className="list-rows">{byPay.map((p) => <li key={p.k}><span>{label[p.k]}</span><b>{brl(p.v)}</b></li>)}</ul>

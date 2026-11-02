@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { PRODUCTS, bySlug, imgUrl, type Product } from '@/lib/catalog'
-import { STORE } from '@/lib/store-facts'
+import { APP_MODE, STORE } from '@/lib/store-facts'
 import { toast } from '@/lib/ui'
+import { abandonedAt, newToken } from '@/lib/recovery'
 import { seed } from './seed'
-import type { Campaign, Conversation, Coupon, Customer, DemoState, Order, OrderStatus, PaymentStatus, ProductPatch, ShippingConfig, ShippingOption } from './types'
+import type { Campaign, CartLine, Conversation, Coupon, Customer, DemoState, Order, OrderStatus, PaymentStatus, ProductPatch, RecoveryAttempt, ShippingConfig, ShippingOption, TrackedCart } from './types'
 
 /**
  * Repositório local da demonstração: localStorage + BroadcastChannel.
@@ -28,7 +29,8 @@ function hydrate() {
     const raw = localStorage.getItem(KEY)
     if (raw) {
       const parsed = JSON.parse(raw) as DemoState
-      if (parsed.version === initial.version) state = parsed
+      // Campos novos (meta, carrinhos acompanhados) entram com o valor inicial sem apagar o que já foi testado.
+      if (parsed.version === initial.version) state = { ...initial, ...parsed }
     }
   } catch { /* armazenamento bloqueado: segue só em memória */ }
   try {
@@ -49,6 +51,45 @@ function set(fn: (s: DemoState) => Partial<DemoState>) {
 }
 
 const uid = (p: string) => `${p}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+
+/**
+ * Acompanha o carrinho desta sessão a cada mudança. Se o cliente volta depois do tempo limite,
+ * o abandono fica registrado: é isso que permite contar a recuperação quando o pedido sai.
+ */
+function track(s: DemoState, cart: DemoState['cart']): Pick<DemoState, 'cart' | 'carts' | 'cartId'> {
+  const now = Date.now()
+  const lines: CartLine[] = cart.flatMap((c) => {
+    const p = findProduct(s, c.slug)
+    return p ? [{ slug: c.slug, name: p.family, variant: p.variant, image: imgUrl(p.image), qty: c.qty, price: p.price }] : []
+  })
+  const total = lines.reduce((n, l) => n + l.qty * l.price, 0)
+  const cur = s.carts.find((c) => c.id === s.cartId && !c.orderId)
+  if (!cur) {
+    if (!lines.length) return { cart, carts: s.carts, cartId: s.cartId }
+    const fresh: TrackedCart = { id: uid('car'), customerId: s.sessionCustomerId ?? undefined, lines, total, createdAt: now, lastActivity: now, resumeToken: newToken(), attempts: [] }
+    return { cart, carts: [fresh, ...s.carts], cartId: fresh.id }
+  }
+  const next = { ...cur, lines, total, lastActivity: now, customerId: cur.customerId ?? s.sessionCustomerId ?? undefined, abandonedAt: abandonedAt(cur, now, s.recovery.idleMinutes) }
+  return { cart, carts: s.carts.map((c) => (c.id === cur.id ? next : c)), cartId: cur.id }
+}
+
+/** Ao entrar ou se cadastrar, o carrinho aberto da sessão passa a ser do cliente. */
+const attach = (s: DemoState, customerId: string) => s.carts.map((c) => (c.id === s.cartId && !c.orderId && !c.customerId ? { ...c, customerId } : c))
+
+/** Em produção o carrinho também vai para o servidor, para acompanhar entre dispositivos. Na demo não sai nada. */
+let syncTimer: ReturnType<typeof setTimeout> | undefined
+function syncCart() {
+  if (APP_MODE !== 'production') return
+  clearTimeout(syncTimer)
+  syncTimer = setTimeout(() => {
+    const c = state.carts.find((x) => x.id === state.cartId)
+    if (!c) return
+    fetch('/api/carrinhos/registrar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true,
+      body: JSON.stringify({ token: c.resumeToken, items: c.lines.map((l) => ({ slug: l.slug, qty: l.qty })) }),
+    }).catch(() => {})
+  }, 1500)
+}
 
 export function useDemo<T = DemoState>(selector?: (s: DemoState) => T): T {
   const s = useSyncExternalStore(
@@ -128,13 +169,15 @@ export const demo = {
       const cart = exists
         ? s.cart.map((c) => (c.slug === slug ? { ...c, qty: Math.min(limit, c.qty + qty) } : c))
         : [...s.cart, { slug, qty: Math.min(limit, qty) }]
-      return { cart }
+      return track(s, cart)
     })
+    syncCart()
   },
   setQty(slug: string, qty: number) {
-    set((s) => ({ cart: qty <= 0 ? s.cart.filter((c) => c.slug !== slug) : s.cart.map((c) => (c.slug === slug ? { ...c, qty: Math.min(s.stock[slug] ?? qty, qty) } : c)) }))
+    set((s) => track(s, qty <= 0 ? s.cart.filter((c) => c.slug !== slug) : s.cart.map((c) => (c.slug === slug ? { ...c, qty: Math.min(s.stock[slug] ?? qty, qty) } : c))))
+    syncCart()
   },
-  saveCart() { set((s) => ({ savedCart: s.cart, cart: [] })) },
+  saveCart() { set((s) => ({ savedCart: s.cart, ...track(s, []) })) },
   restoreCart() {
     set((s) => {
       const merged = [...s.cart]
@@ -143,8 +186,21 @@ export const demo = {
         if (i >= 0) merged[i] = { ...merged[i], qty: merged[i].qty + l.qty }
         else merged.push(l)
       })
-      return { cart: merged, savedCart: [] }
+      return { ...track(s, merged), savedCart: [] }
     })
+  },
+  /** Link de retomada: devolve ao carrinho os itens ainda em estoque e segue acompanhando o mesmo carrinho. */
+  resumeCart(token: string) {
+    const c = state.carts.find((x) => x.resumeToken === token)
+    if (!c || c.orderId) return false
+    set((s) => {
+      const cart = c.lines.flatMap((l) => {
+        const qty = Math.min(l.qty, s.stock[l.slug] ?? 0)
+        return qty > 0 ? [{ slug: l.slug, qty }] : []
+      })
+      return track({ ...s, cartId: c.id }, cart)
+    })
+    return true
   },
   toggleFavorite(slug: string) {
     set((s) => ({ favorites: s.favorites.includes(slug) ? s.favorites.filter((f) => f !== slug) : [...s.favorites, slug] }))
@@ -157,22 +213,39 @@ export const demo = {
 
   login(email: string) {
     const c = state.customers.find((x) => x.email.toLowerCase() === email.trim().toLowerCase()) ?? state.customers[0]
-    set(() => ({ sessionCustomerId: c.id }))
+    set((s) => ({ sessionCustomerId: c.id, carts: attach(s, c.id) }))
     return c
   },
   register(data: Pick<Customer, 'name' | 'business' | 'email' | 'phone' | 'city' | 'marketingConsent'>) {
     const id = uid('cli')
-    const customer: Customer = { ...data, id, segment: 'Novo', notes: '', addresses: [], createdAt: Date.now() }
+    const customer: Customer = { ...data, id, segment: 'Novo', notes: '', addresses: [], createdAt: Date.now(), consentAt: data.marketingConsent ? Date.now() : undefined }
     set((s) => ({
       customers: [customer, ...s.customers],
       sessionCustomerId: id,
+      carts: attach(s, id),
       activity: [{ id: uid('a'), text: `Novo cadastro: ${data.name}`, at: Date.now(), kind: 'cliente' as const }, ...s.activity],
     }))
     return customer
   },
   logout() { set(() => ({ sessionCustomerId: null })) },
   updateCustomer(id: string, patch: Partial<Customer>) {
-    set((s) => ({ customers: s.customers.map((c) => (c.id === id ? { ...c, ...patch } : c)) }))
+    set((s) => ({
+      customers: s.customers.map((c) => {
+        if (c.id !== id) return c
+        const changed = patch.marketingConsent !== undefined && patch.marketingConsent !== c.marketingConsent
+        const log = changed ? (patch.marketingConsent ? { consentAt: Date.now() } : { optOutAt: Date.now() }) : {}
+        return { ...c, ...patch, ...log }
+      }),
+    }))
+  },
+  /** Descadastro (ex.: cliente respondeu SAIR). Bloqueia novos contatos e fica registrado. */
+  optOut(id: string) {
+    const c = state.customers.find((x) => x.id === id)
+    if (!c) return
+    set((s) => ({
+      customers: s.customers.map((x) => (x.id === id ? { ...x, marketingConsent: false, optOutAt: Date.now() } : x)),
+      activity: [{ id: uid('a'), text: `${c.name} pediu para não receber mensagens`, at: Date.now(), kind: 'marketing' as const }, ...s.activity],
+    }))
   },
 
   placeOrder(input: { name: string; business?: string; email: string; phone: string; city: string; delivery: 'entrega' | 'retirada'; address?: string; destCep?: string; shippingOption: ShippingOption; payment: Order['payment'] }) {
@@ -202,8 +275,12 @@ export const demo = {
     const conversations = hasConv
       ? s0.conversations.map((c) => (c.id === hasConv.id ? appendMessage(c, 'sistema', confirm) : c))
       : [{ id: `c-${customer.id}`, customerId: customer.id, name: input.name, phone: input.phone, tags: ['Pedido aberto'], mode: 'ia' as const, unread: 0, messages: [{ id: uid('m'), from: 'sistema' as const, text: confirm, at: now }] }, ...s0.conversations]
+    // O carrinho acompanhado vira pedido. Se tinha passado do tempo limite antes disso, conta como recuperado.
+    const carts = s0.carts.map((c) => (c.id === s0.cartId && !c.orderId
+      ? { ...c, customerId: customer!.id, orderId: order.id, convertedAt: now, abandonedAt: abandonedAt(c, now, s0.recovery.idleMinutes) }
+      : c))
     set((s) => ({
-      orders: [order, ...s.orders], cart: [], couponApplied: null, stock, conversations,
+      orders: [order, ...s.orders], cart: [], couponApplied: null, stock, conversations, carts, cartId: null,
       customers: isNew ? [customer!, ...s.customers] : s.customers,
       sessionCustomerId: s.sessionCustomerId ?? customer!.id,
       coupons: s.coupons.map((c) => (c.code === order.coupon ? { ...c, uses: c.uses + 1 } : c)),
@@ -260,6 +337,33 @@ export const demo = {
       campaigns: [{ ...c, id: uid('camp'), createdAt: Date.now() }, ...s.campaigns],
       activity: [{ id: uid('a'), text: `Campanha “${c.name}” ${c.status === 'simulada' ? 'simulada (nada foi enviado)' : 'salva'}`, at: Date.now(), kind: 'marketing' as const }, ...s.activity],
     }))
+  },
+
+  setSalesGoal(v: number) { if (v > 0) set(() => ({ salesGoal: Math.round(v) })) },
+  setIdleMinutes(m: number) { if (m >= 5) set(() => ({ recovery: { idleMinutes: Math.round(m) } })) },
+  /**
+   * Registra a tentativa no histórico do carrinho. Envio simulado também aparece na Central WhatsApp,
+   * marcado como simulação. Nada sai do navegador.
+   */
+  recordAttempt(cartId: string, a: Omit<RecoveryAttempt, 'id' | 'at'>) {
+    const cart = state.carts.find((c) => c.id === cartId)
+    if (!cart) return
+    const at = Date.now()
+    const attempt: RecoveryAttempt = { ...a, id: uid('att'), at }
+    const customer = state.customers.find((c) => c.id === cart.customerId)
+    set((s) => {
+      const carts = s.carts.map((c) => (c.id === cartId ? { ...c, attempts: [...c.attempts, attempt] } : c))
+      if ((a.result !== 'simulada' && a.result !== 'enviada') || !customer) return { carts }
+      const convId = s.conversations.find((c) => c.customerId === customer.id)?.id ?? `c-${customer.id}`
+      const base: Conversation = s.conversations.find((c) => c.id === convId) ?? { id: convId, customerId: customer.id, name: customer.name, phone: customer.phone, tags: [], mode: 'humano', unread: 0, messages: [] }
+      const note = a.result === 'simulada' ? `Recuperação de carrinho ${cartId}: envio simulado, nada saiu pelo WhatsApp` : `Recuperação de carrinho ${cartId}: enviado pela API oficial`
+      const conv = { ...base, tags: base.tags.includes('Carrinho abandonado') ? base.tags : [...base.tags, 'Carrinho abandonado'], messages: [...base.messages, { id: uid('m'), from: 'sistema' as const, text: note, at }, { id: uid('m'), from: 'atendente' as const, text: a.text, at }] }
+      return {
+        carts,
+        conversations: [conv, ...s.conversations.filter((c) => c.id !== convId)],
+        activity: [{ id: uid('a'), text: `Carrinho de ${customer.name}: ${a.result === 'simulada' ? 'mensagem simulada' : 'mensagem enviada'}`, at, kind: 'whatsapp' as const }, ...s.activity],
+      }
+    })
   },
 
   setWhatsappStep(step: DemoState['whatsapp']['step']) { set(() => ({ whatsapp: { step } })) },

@@ -53,7 +53,7 @@ export default function Panel() {
         <Logo size={34} />
         <nav aria-label="Painel">
           {NAV.map(({ id, label, Icon }) => (
-            <Link key={id} href={`/painel${id ? `/${id}` : ''}`} aria-current={section === id ? 'page' : undefined}>
+            <Link key={id} href={`/painel${id ? `/${id}` : ''}`} aria-current={section === id || (id && section.startsWith(`/`)) ? 'page' : undefined}>
               <Icon size={17} aria-hidden /> {label}
               {id === 'pedidos' && newOrders > 0 && <em>{newOrders}</em>}
               {id === 'whatsapp' && unread > 0 && <em>{unread}</em>}
@@ -64,7 +64,7 @@ export default function Panel() {
         <div className="side-foot">Painel de demonstração. Dados fictícios.</div>
       </aside>
       <nav className="tabbar" aria-label="Painel">
-        {NAV.map(({ id, label }) => <Link key={id} href={`/painel${id ? `/${id}` : ''}`} aria-current={section === id ? 'page' : undefined}>{label}</Link>)}
+        {NAV.map(({ id, label }) => <Link key={id} href={`/painel${id ? `/${id}` : ''}`} aria-current={section === id || (id && section.startsWith(`/`)) ? 'page' : undefined}>{label}</Link>)}
       </nav>
       <main className="app-main">
         {section === '' && <Overview s={s} />}
@@ -72,7 +72,7 @@ export default function Panel() {
         {section === 'produtos' && <Products s={s} />}
         {section === 'clientes' && <Customers s={s} />}
         {section === 'financeiro' && <Finance s={s} />}
-        {section === 'marketing' && <Marketing s={s} />}
+        {secao?.[0] === 'marketing' && <Marketing s={s} tab={secao[1]} />}
         {section === 'whatsapp' && <WhatsApp s={s} />}
         {section === 'configuracoes/entregas/melhor-envio' && <ShippingSettings s={s} />}
         {section === 'ajustes' && (

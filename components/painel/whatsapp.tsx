@@ -202,6 +202,7 @@ function Automations({ s }: { s: DemoState }) {
         <ul className="list-rows">
           {s.conversations.filter((c) => c.tags.includes('Carrinho abandonado')).map((c) => <li key={c.id}><span>{c.name}<small>Sugestão pronta na caixa de entrada</small></span></li>)}
         </ul>
+        <Link className="btn btn-ghost btn-sm" style={{ marginTop: 12 }} href="/painel/marketing/carrinhos-abandonados">Abrir carrinhos abandonados</Link>
       </section>
     </div>
   )

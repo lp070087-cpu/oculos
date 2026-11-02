@@ -64,8 +64,32 @@ export type Customer = {
   segment: 'Novo' | 'Recorrente' | 'VIP' | 'Inativo'
   notes: string
   marketingConsent: boolean
+  /** Registro de consentimento (LGPD): quando autorizou e quando pediu para sair. */
+  consentAt?: number
+  optOutAt?: number
   addresses: Address[]
   createdAt: number
+}
+
+export type CartLine = { slug: string; name: string; variant: string; image: string; qty: number; price: number }
+export type RecoveryResult = 'preparada' | 'simulada' | 'enviada' | 'falhou'
+export type RecoveryAttempt = { id: string; at: number; channel: 'whatsapp'; mode: 'livre' | 'modelo'; text: string; result: RecoveryResult; note: string }
+
+/** Carrinho acompanhado para recuperação. O status (ativo, abandonado, recuperado...) é calculado, não guardado. */
+export type TrackedCart = {
+  id: string
+  customerId?: string
+  lines: CartLine[]
+  total: number
+  createdAt: number
+  lastActivity: number
+  /** Primeiro momento em que passou do tempo de inatividade. Fica gravado mesmo se o cliente voltar. */
+  abandonedAt?: number
+  orderId?: string
+  convertedAt?: number
+  /** Token aleatório do link de retomada. Não carrega dado pessoal. */
+  resumeToken: string
+  attempts: RecoveryAttempt[]
 }
 
 export type Author = 'cliente' | 'atendente' | 'ia' | 'sistema'
@@ -124,4 +148,10 @@ export type DemoState = {
   whatsapp: { step: 0 | 1 | 2 | 3 }
   shipping: ShippingConfig
   lowStockAt: number
+  /** Meta diária de faturamento, usada só para colorir os gráficos. */
+  salesGoal: number
+  carts: TrackedCart[]
+  /** Carrinho acompanhado desta sessão do navegador. */
+  cartId: string | null
+  recovery: { idleMinutes: number }
 }

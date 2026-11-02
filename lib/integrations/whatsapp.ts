@@ -1,6 +1,6 @@
 import { APP_MODE } from '@/lib/store-facts'
 
-export type OutboundMessage = { to: string; text?: string; templateName?: string }
+export type OutboundMessage = { to: string; text?: string; templateName?: string; params?: string[] }
 export type SendResult = { ok: boolean; simulated: boolean; id?: string; error?: string }
 
 /** Contrato único da integração. As telas nunca falam com a Meta diretamente. */

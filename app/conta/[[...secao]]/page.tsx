@@ -88,7 +88,10 @@ function Auth() {
   }
   return (
     <div className="auth">
-      <div className="auth-art"><img src="/banners/your-frequency-mobile.webp" alt="" /></div>
+      <figure className="auth-art">
+        <img src="/banners/your-frequency-mobile.webp" alt="" />
+        <figcaption><span className="eyebrow">Atacado a partir de {STORE.minPieces} peças</span>Your Style. Your Frequency.</figcaption>
+      </figure>
       <form className="auth-form" onSubmit={up}>
         <Logo />
         <h1>{mode === 'in' ? 'Entrar' : 'Criar conta'}</h1>
