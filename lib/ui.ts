@@ -19,7 +19,7 @@ export function setCartOpen(cartOpen: boolean) {
 
 export function toast(text: string, opts?: { href?: string; action?: string }) {
   const id = Date.now() + Math.random()
-  ui = { ...ui, toasts: [...ui.toasts.slice(-2), { id, text, ...opts }] }
+  ui = { ...ui, toasts: [...ui.toasts.filter((t) => t.text !== text).slice(-2), { id, text, ...opts }] }
   emit()
   setTimeout(() => { ui = { ...ui, toasts: ui.toasts.filter((t) => t.id !== id) }; emit() }, 6500)
 }

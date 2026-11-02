@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { PRODUCTS, bySlug, imgUrl, type Product } from '@/lib/catalog'
 import { STORE } from '@/lib/store-facts'
+import { toast } from '@/lib/ui'
 import { seed } from './seed'
 import type { Campaign, Conversation, Coupon, Customer, DemoState, Order, OrderStatus, PaymentStatus, ProductPatch, ShippingConfig, ShippingOption } from './types'
 
@@ -79,6 +80,21 @@ export function catalog(s: DemoState): Product[] {
 }
 
 export const findProduct = (s: DemoState, slug: string) => catalog(s).find((p) => p.slug === slug) ?? bySlug(slug)
+
+/** Versões do mesmo modelo: cada cor é um produto do catálogo. */
+export function useFamily(family: string) {
+  const patches = useDemo((s) => s.patches)
+  const created = useDemo((s) => s.created)
+  return useMemo(() => catalog({ patches, created } as DemoState).filter((p) => p.family === family), [patches, created, family])
+}
+
+/** Adiciona sem sair da página. Quem chama não abre o carrinho. */
+export function addAndConfirm(slug: string, qty = 1) {
+  const before = state.cart.find((c) => c.slug === slug)?.qty ?? 0
+  demo.addToCart(slug, qty)
+  const after = state.cart.find((c) => c.slug === slug)?.qty ?? 0
+  toast(after > before ? 'Produto adicionado' : 'Limite do estoque atingido')
+}
 
 export function cartSummary(s: DemoState) {
   const lines = s.cart.flatMap((c) => {

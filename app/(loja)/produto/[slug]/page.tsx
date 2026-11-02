@@ -1,17 +1,19 @@
 'use client'
 
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Check, Heart, Minus, Plus, Share2, Truck } from 'lucide-react'
 import { brl, imgUrl } from '@/lib/catalog'
 import { STORE } from '@/lib/store-facts'
-import { catalog, demo, findProduct, useDemo } from '@/lib/demo/store'
-import { setCartOpen, toast } from '@/lib/ui'
+import { addAndConfirm, catalog, demo, findProduct, useDemo } from '@/lib/demo/store'
+import { toast } from '@/lib/ui'
+import { ColorPicker } from '@/components/store/color-picker'
 import { ProductCard } from '@/components/store/product'
 
 export default function ProductPage() {
   const { slug } = useParams<{ slug: string }>()
+  const router = useRouter()
   const s = useDemo()
   const p = findProduct(s, slug)
   const [qty, setQty] = useState(1)
@@ -57,18 +59,10 @@ export default function ProductPage() {
           <span className="eyebrow">{p.family}</span>
           <h1>{p.variant}</h1>
           <p className="pdp-price">{p.oldPrice && <s>{brl(p.oldPrice)}</s>}<b>{brl(p.price)}</b><span>por peça</span></p>
-          {family.length > 1 && (
-            <fieldset className="pdp-opts">
-              <legend>Cor da lente <b>{p.variant}</b></legend>
-              <div className="swatches">
-                {family.slice(0, 20).map((o) => (
-                  <Link key={o.slug} href={`/produto/${o.slug}`} title={o.variant} aria-label={o.variant} aria-current={o.slug === p.slug ? 'true' : undefined} className={o.slug === p.slug ? 'on' : ''}>
-                    <i style={{ background: o.swatch }} />
-                  </Link>
-                ))}
-              </div>
-            </fieldset>
-          )}
+          <div className="pdp-opts">
+            <span className="field-label">Cor da lente</span>
+            <ColorPicker options={family} value={p} onChange={(o) => router.push(`/produto/${o.slug}`, { scroll: false })} />
+          </div>
           {!out && (
             <div className="pdp-qty">
               <span className="field-label" id="qty-label">Quantidade</span>
@@ -88,7 +82,7 @@ export default function ProductPage() {
           <div className="pdp-cta">
             <button
               className="btn btn-block" disabled={out}
-              onClick={() => { demo.addToCart(p.slug, qty); setCartOpen(true) }}
+              onClick={() => addAndConfirm(p.slug, qty)}
             >
               {out ? 'Esgotado' : `Adicionar ao pedido · ${brl(p.price * qty)}`}
             </button>

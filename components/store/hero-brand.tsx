@@ -21,7 +21,6 @@ export function BrandSlide({ active }: { active: boolean }) {
         <g className="bb-spin bb-spin-rev">
           <path d="M1060 -70a470 470 0 0 1 470 470" fill="none" stroke="#d9b441" strokeWidth="1.5" />
         </g>
-        <path d="M0 800 620 0" stroke="#111" strokeWidth="1" opacity=".08" />
         <g className="bb-ticks">
           {TICKS.map((i) => <rect key={i} x={i * 23} y="0" width="1.5" height={i % 8 === 0 ? 26 : 12} fill={i % 8 === 0 ? '#d9b441' : '#111'} style={{ animationDelay: `${(i % 16) * 0.22}s` }} />)}
         </g>

@@ -14,6 +14,7 @@ const SLIDES: { id: string; tag?: string; title?: string[]; size?: string; text?
   },
 ]
 const DURATION = 8000
+const FADE = 1400
 
 export function Hero() {
   const [i, setI] = useState(0)
@@ -22,6 +23,8 @@ export function Hero() {
   const [reduced, setReduced] = useState(false)
   const [mobile, setMobile] = useState(false)
   const [ready, setReady] = useState(false)
+  const [moved, setMoved] = useState(false)
+  const [prev, setPrev] = useState<number | null>(null)
   const videos = useRef<(HTMLVideoElement | null)[]>([])
 
   useEffect(() => {
@@ -37,7 +40,7 @@ export function Hero() {
 
   useEffect(() => {
     if (paused || hold) return
-    const t = setTimeout(() => setI((v) => (v + 1) % SLIDES.length), DURATION)
+    const t = setTimeout(() => show((i + 1) % SLIDES.length), DURATION)
     return () => clearTimeout(t)
   }, [i, paused, hold])
 
@@ -49,12 +52,19 @@ export function Hero() {
     })
   }, [i, paused, mobile, ready])
 
-  const go = (d: number) => setI((v) => (v + d + SLIDES.length) % SLIDES.length)
+  useEffect(() => {
+    if (prev === null) return
+    const t = setTimeout(() => setPrev(null), FADE)
+    return () => clearTimeout(t)
+  }, [prev])
+
+  const show = (n: number) => { setMoved(true); setPrev(i); setI(n) }
+  const go = (d: number) => show((i + d + SLIDES.length) % SLIDES.length)
   const f = mobile ? 'mobile' : 'desktop'
 
   return (
     <section
-      className={`hero ${SLIDES[i].id === 'marca' ? 'hero-light' : ''}`} aria-roledescription="carrossel" aria-label="Campanhas"
+      className={`hero ${moved ? 'hero-moved' : ''} ${SLIDES[i].id === 'marca' ? 'hero-light' : ''}`} aria-roledescription="carrossel" aria-label="Campanhas"
       onMouseEnter={() => setHold(true)} onMouseLeave={() => setHold(false)}
       onFocusCapture={() => setHold(true)} onBlurCapture={() => setHold(false)}
     >
@@ -68,7 +78,7 @@ export function Hero() {
             <source media="(max-width: 760px)" srcSet={`/banners/${s.id}-mobile.webp`} />
             <img src={`/banners/${s.id}-desktop.webp`} alt="" />
           </picture>
-          {ready && !reduced && n === i && (
+          {ready && !reduced && (n === i || n === prev) && (
             <video key={f} ref={(el) => { videos.current[n] = el }} muted loop playsInline preload="auto" poster={`/banners/${s.id}-${f}.webp`}>
               <source src={`/banners/${s.id}-${f}.webm`} type="video/webm" />
               <source src={`/banners/${s.id}-${f}.mp4`} type="video/mp4" />
@@ -87,7 +97,7 @@ export function Hero() {
       <div className="hero-ctrl">
         <div className="hero-dots" role="tablist" aria-label="Escolher campanha">
           {SLIDES.map((s, n) => (
-            <button key={s.id} role="tab" aria-selected={n === i} aria-label={`Campanha ${n + 1}`} onClick={() => setI(n)}>
+            <button key={s.id} role="tab" aria-selected={n === i} aria-label={`Campanha ${n + 1}`} onClick={() => { if (n !== i) show(n) }}>
               <span>0{n + 1}</span>
               <i><b key={`${i}-${paused || hold}`} className={n === i && !paused && !hold ? 'run' : n === i ? 'full' : ''} style={{ animationDuration: `${DURATION}ms` }} /></i>
             </button>
