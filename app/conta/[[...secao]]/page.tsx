@@ -10,6 +10,7 @@ import { catalog, demo, findProduct, me, useDemo, useHydrated } from '@/lib/demo
 import { fmtDate, fmtDateTime, fmtTime, toast } from '@/lib/ui'
 import { Logo, ORDER_LABEL, PAY_LABEL, Pill, orderTone, payTone } from '@/components/ui'
 import { ProductCard } from '@/components/store/product'
+import { MobileNav } from '@/components/mobile-nav'
 import type { Customer, DemoState, Order } from '@/lib/demo/types'
 
 const NAV = [
@@ -54,9 +55,19 @@ export default function Account() {
           <button className="text-btn" onClick={() => { demo.logout(); router.push('/conta') }}><LogOut size={13} style={{ display: 'inline', marginRight: 5 }} aria-hidden />Sair</button>
         </div>
       </aside>
-      <nav className="tabbar" aria-label="Minha conta">
-        {NAV.map(({ id, label }) => <Link key={id} href={`/conta${id ? `/${id}` : ''}`} aria-current={section === id ? 'page' : undefined}>{label}</Link>)}
-      </nav>
+      <MobileNav
+        label="Minha conta"
+        items={[
+          ...NAV.map(({ id, label, Icon }) => ({ href: `/conta${id ? `/${id}` : ''}`, label: id ? label : 'Minha conta', Icon, current: section === id, badge: id === 'notificacoes' ? unread : 0 })),
+          { href: '/', label: 'Voltar à loja', Icon: ShoppingBag },
+        ]}
+        footer={(close) => (
+          <>
+            <p>{user.name}</p>
+            <button type="button" className="btn btn-ghost btn-block" onClick={() => { close(); demo.logout(); router.push('/conta') }}><LogOut size={16} aria-hidden /> Sair</button>
+          </>
+        )}
+      />
       <main className="app-main">
         {section === '' && <Dashboard s={s} user={user} />}
         {section === 'pedidos' && (secao?.[1] ? <OrderDetail s={s} id={secao[1]} /> : <Orders s={s} user={user} />)}

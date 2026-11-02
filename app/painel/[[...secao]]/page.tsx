@@ -3,11 +3,12 @@
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useEffect, useRef } from 'react'
-import { BarChart3, Boxes, LayoutDashboard, Megaphone, MessageCircle, Package, Settings, Store, Truck, Users } from 'lucide-react'
+import { BarChart3, Boxes, LayoutDashboard, Megaphone, MessageCircle, Package, Settings, ShoppingCart, Store, Truck, Users } from 'lucide-react'
 import { brl } from '@/lib/catalog'
 import { demo, useDemo, useHydrated } from '@/lib/demo/store'
 import { toast } from '@/lib/ui'
 import { Logo } from '@/components/ui'
+import { MobileNav } from '@/components/mobile-nav'
 import { Overview, Finance } from '@/components/painel/overview'
 import { Orders } from '@/components/painel/orders'
 import { Products } from '@/components/painel/products'
@@ -27,6 +28,11 @@ const NAV = [
   { id: 'configuracoes/entregas/melhor-envio', label: 'Entregas', Icon: Truck },
   { id: 'ajustes', label: 'Ajustes da demo', Icon: Settings },
 ]
+
+const CARTS = 'marketing/carrinhos-abandonados'
+/** No celular, carrinhos abandonados ganham atalho próprio logo depois de Marketing. */
+const MOBILE = [...NAV.slice(0, 6), { id: CARTS, label: 'Carrinhos abandonados', Icon: ShoppingCart }, ...NAV.slice(6, 8), { ...NAV[8], label: 'Ajustes da demonstração' }]
+const isOn = (section: string, id: string) => section === id || (!!id && section.startsWith(`${id}/`))
 
 export default function Panel() {
   const { secao } = useParams<{ secao?: string[] }>()
@@ -53,7 +59,7 @@ export default function Panel() {
         <Logo size={34} />
         <nav aria-label="Painel">
           {NAV.map(({ id, label, Icon }) => (
-            <Link key={id} href={`/painel${id ? `/${id}` : ''}`} aria-current={section === id || (id && section.startsWith(`/`)) ? 'page' : undefined}>
+            <Link key={id} href={`/painel${id ? `/${id}` : ''}`} aria-current={isOn(section, id) ? 'page' : undefined}>
               <Icon size={17} aria-hidden /> {label}
               {id === 'pedidos' && newOrders > 0 && <em>{newOrders}</em>}
               {id === 'whatsapp' && unread > 0 && <em>{unread}</em>}
@@ -63,9 +69,17 @@ export default function Panel() {
         </nav>
         <div className="side-foot">Painel de demonstração. Dados fictícios.</div>
       </aside>
-      <nav className="tabbar" aria-label="Painel">
-        {NAV.map(({ id, label }) => <Link key={id} href={`/painel${id ? `/${id}` : ''}`} aria-current={section === id || (id && section.startsWith(`/`)) ? 'page' : undefined}>{label}</Link>)}
-      </nav>
+      <MobileNav
+        label="Painel"
+        items={[
+          ...MOBILE.map(({ id, label, Icon }) => ({
+            href: `/painel${id ? `/${id}` : ''}`, label, Icon,
+            current: id === 'marketing' ? isOn(section, id) && section !== CARTS : isOn(section, id),
+            badge: id === 'pedidos' ? newOrders : id === 'whatsapp' ? unread : 0,
+          })),
+          { href: '/', label: 'Ver a loja', Icon: Store },
+        ]}
+      />
       <main className="app-main">
         {section === '' && <Overview s={s} />}
         {section === 'pedidos' && <Orders s={s} />}

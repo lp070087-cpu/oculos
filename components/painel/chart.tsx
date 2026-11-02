@@ -17,13 +17,28 @@ export const TIERS = [
 export const tierOf = (ratio: number) => TIERS.find((t) => ratio >= t.min) ?? TIERS[TIERS.length - 1]
 
 type Point = { to: number; value: number; count?: number }
+
+/**
+ * Escala automática da régua: passo "redondo" (1, 2, 2,5 ou 5 × 10ⁿ) em até 4 intervalos,
+ * sempre cobrindo o maior valor exibido e a meta. Nada fica cortado se as vendas crescerem.
+ */
+export function scale(max: number) {
+  const raw = Math.max(max, 1) / 4
+  const mag = 10 ** Math.floor(Math.log10(raw))
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw) ?? 10 * mag
+  const n = Math.max(1, Math.ceil(max / step - 1e-9))
+  return { top: step * n, ticks: Array.from({ length: n + 1 }, (_, i) => i * step) }
+}
+const money = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+/** Versão curta para o celular: R$ 750, R$ 1,5k. */
+const short = (v: number) => (v >= 1000 ? `R$ ${(v / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}k` : `R$ ${v}`)
 const pct = (n: number) => `${Math.round(n * 100)}%`
 
 /** Barras por dia coloridas pela meta diária. Tooltip no mouse, no toque e no foco do teclado. */
 export function SalesChart({ data, compare, goal }: { data: Point[]; compare?: Point[]; goal: number }) {
   const [on, setOn] = useState<number | null>(null)
   const ref = useRef<HTMLDivElement>(null)
-  const max = Math.max(1, goal * 1.15, ...data.map((d) => d.value), ...(compare ?? []).map((d) => d.value))
+  const { top: max, ticks } = scale(Math.max(goal, ...data.map((d) => d.value), ...(compare ?? []).map((d) => d.value)))
   const h = (v: number) => `${(v / max) * 100}%`
 
   useEffect(() => {
@@ -41,8 +56,13 @@ export function SalesChart({ data, compare, goal }: { data: Point[]; compare?: P
 
   return (
     <figure className="sc">
+      <div className="sc-frame">
+      <div className="sc-y" aria-hidden>
+        {ticks.map((v) => <span key={v} style={{ bottom: h(v) }}><b>{money(v)}</b><i>{short(v)}</i></span>)}
+      </div>
       <div className="sc-plot" ref={ref} onMouseLeave={() => setOn(null)}>
         <div className="sc-area" aria-hidden>
+          {ticks.map((v) => <div key={v} className="sc-grid" style={{ bottom: h(v) }} />)}
           <div className="sc-goal" style={{ bottom: h(goal) }}><span>Meta {brl(goal)}</span></div>
         </div>
         {data.map((p, i) => {
@@ -73,6 +93,7 @@ export function SalesChart({ data, compare, goal }: { data: Point[]; compare?: P
             {prev && <small>Período anterior ({fmtDate(prev.to)}): {brl(prev.value)}</small>}
           </div>
         )}
+      </div>
       </div>
       <figcaption className="sc-legend">
         {[...TIERS].reverse().map((x) => <span key={x.label} title={x.range}><i style={{ background: x.color }} />{x.label}</span>)}

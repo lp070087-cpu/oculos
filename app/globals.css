@@ -434,7 +434,7 @@ img.zoom-b { transform: scale(2); transform-origin: 75% 44%; object-fit: cover !
 .app-top h1 { font-size: clamp(26px, 3vw, 38px); font-stretch: 118%; letter-spacing: -.015em; }
 .app-top p { color: var(--mute); font-size: 14px; margin-top: 4px; }
 .app-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.tabbar { display: none; }
+.anav-bar, .anav-back, .anav-panel { display: none; }
 .demo-note { padding: 8px 12px; margin-bottom: 18px; border-left: 2px solid var(--gold); background: var(--ink-2); font-size: 13px; color: #d9d6cf; }
 .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: var(--line); gap: 1px; border: 1px solid var(--line); margin-bottom: 20px; }
 .kpi { padding: 16px; background: var(--ink-2); min-width: 0; }
@@ -466,9 +466,17 @@ tr.is-new { animation: newRow 2.4s var(--ease); }
 /* Gráfico de vendas: cor por desempenho contra a meta diária */
 .sc { margin: 0; }
 .sc-plot { position: relative; display: flex; align-items: stretch; gap: clamp(2px, .5vw, 6px); height: 210px; padding-top: 22px; }
-.sc-area { position: absolute; inset: 22px 0 22px; pointer-events: none; background: repeating-linear-gradient(to top, transparent 0 calc(25% - 1px), rgba(242, 239, 232, .045) calc(25% - 1px) 25%); }
+.sc-frame { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; }
+/* Mesma altura útil das barras: 210px menos 22px em cima (espaço da meta) e 22px embaixo (dias) */
+.sc-y { position: relative; height: 166px; margin-top: 22px; min-width: 52px; }
+.sc-y span { position: absolute; right: 0; transform: translateY(50%); font: 10px/1 var(--mono); color: var(--mute); white-space: nowrap; font-variant-numeric: tabular-nums; transition: bottom .5s var(--ease); }
+.sc-y b { font-weight: 400; }
+.sc-y i { display: none; font-style: normal; }
+.sc-area { position: absolute; inset: 22px 0 22px; pointer-events: none; }
+.sc-grid { position: absolute; left: 0; right: 0; border-top: 1px solid rgba(242, 239, 232, .07); transition: bottom .5s var(--ease); }
+.sc-grid:first-child { border-top-color: rgba(242, 239, 232, .16); }
 .sc-goal { position: absolute; left: 0; right: 0; border-top: 1px dashed rgba(240, 207, 98, .55); transition: bottom .5s var(--ease); }
-.sc-goal span { position: absolute; right: 0; bottom: 3px; padding: 0 4px; background: var(--ink-2); font: 500 10px var(--mono); letter-spacing: .04em; color: var(--gold-2); }
+.sc-goal span { position: absolute; z-index: 2; right: 0; bottom: 3px; padding: 0 4px; background: var(--ink-2); font: 500 10px var(--mono); letter-spacing: .04em; color: var(--gold-2); }
 .sc-col { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; padding: 0; border-radius: 2px; cursor: pointer; }
 .sc-col:focus-visible { outline: 1px solid var(--gold); outline-offset: 2px; }
 .sc-bars { flex: 1; display: flex; align-items: flex-end; justify-content: center; gap: 2px; min-height: 0; }
@@ -525,6 +533,8 @@ tr.is-new { animation: newRow 2.4s var(--ease); }
 @media (max-width: 760px) {
   .kpis-5 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .kpis-5 .kpi:last-child { grid-column: span 2; }
+  .kpis-5 .kpi { padding: 14px 12px; }
+  .kpis-5 .kpi b { font-size: clamp(16px, 5vw, 22px); overflow-wrap: anywhere; }
   .cart-filters { grid-template-columns: minmax(0, 1fr); }
   .cart-rows li { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
   .cart-thumbs { display: none; }
@@ -533,6 +543,10 @@ tr.is-new { animation: newRow 2.4s var(--ease); }
   .cart-acts .btn { flex: 1; }
   .panel-h:has(.goal) { flex-wrap: wrap; }
   .sc-tip { left: 50% !important; right: auto !important; transform: translateX(-50%); }
+  .sc-frame { gap: 6px; }
+  .sc-y { min-width: 40px; }
+  .sc-y b { display: none; }
+  .sc-y i { display: inline; }
 }
 @keyframes scGrow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 .goal { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; color: var(--mute); }
@@ -647,9 +661,36 @@ tr.is-new { animation: newRow 2.4s var(--ease); }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .app { display: block; }
   .side { display: none; }
-  .tabbar { display: flex; gap: 2px; position: sticky; top: 0; z-index: 30; overflow-x: auto; padding: 6px var(--gutter); background: var(--ink-2); border-bottom: 1px solid var(--line); scrollbar-width: none; }
-  .tabbar a { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 6px 11px; font-size: 13px; font-weight: 600; color: #c9c6c0; border-radius: 2px; }
-  .tabbar a[aria-current] { background: var(--bone); color: #0a0a0b; }
+  /* Menu do painel e da conta no celular e tablet: botão no canto superior direito e gaveta lateral */
+  .anav-bar { position: sticky; top: 0; z-index: 40; display: flex; align-items: center; gap: 12px; min-height: 60px; padding: calc(8px + env(safe-area-inset-top, 0px)) max(10px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px)); background: rgba(17, 17, 19, .94); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+  .anav-bar .logo span { font-size: 12px; }
+  .anav-here { min-width: 0; margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--mute); }
+  .anav-btn { position: relative; flex: none; display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--line-2); border-radius: 2px; color: var(--bone); transition: border-color .2s, color .2s; }
+  .anav-btn:hover, .anav-btn[aria-expanded='true'] { border-color: var(--gold); color: var(--gold); }
+  .anav-btn em, .anav-panel nav a em { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--gold); color: #000; font: 700 11px/18px var(--sans); font-style: normal; text-align: center; }
+  .anav-btn em { position: absolute; top: -6px; right: -6px; }
+  .anav-back { display: block; position: fixed; inset: 0; z-index: 95; background: rgba(0, 0, 0, .62); opacity: 0; pointer-events: none; transition: opacity .25s var(--ease); }
+  .anav-back.on { opacity: 1; pointer-events: auto; }
+  .anav-panel { display: flex; flex-direction: column; position: fixed; z-index: 96; top: 0; right: 0; bottom: 0; width: min(320px, 86vw); padding: calc(8px + env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) 12px; background: var(--ink-2); border-left: 1px solid var(--line); overflow-y: auto; overscroll-behavior: contain; transform: translateX(100%); visibility: hidden; transition: transform .3s var(--ease), visibility 0s linear .3s; }
+  .anav-panel.on { transform: none; visibility: visible; transition: transform .3s var(--ease); }
+  .anav-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 52px; padding: 0 0 8px 6px; margin-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .anav-head .logo span { font-size: 12px; }
+  .anav-panel nav { display: grid; gap: 2px; }
+  .anav-panel nav a { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 10px 12px; border-radius: 2px; font-size: 15px; font-weight: 500; color: #c9c6c0; }
+  .anav-panel nav a span { min-width: 0; }
+  .anav-panel nav a em { margin-left: auto; }
+  .anav-panel nav a:hover { background: var(--ink-3); color: var(--bone); }
+  .anav-panel nav a[aria-current] { background: var(--ink-4); box-shadow: inset 3px 0 0 var(--gold); color: var(--bone); font-weight: 700; }
+  .anav-panel nav a[aria-current] svg { color: var(--gold); }
+  .anav-foot { display: grid; gap: 10px; margin-top: auto; padding: 16px 6px 0; border-top: 1px solid var(--line); }
+  .anav-foot p { font-size: 13px; color: var(--mute); }
+  .anav-foot .btn { gap: 8px; }
+}
+@media (max-width: 960px) and (max-height: 700px) {
+  .anav-panel nav a { min-height: 44px; padding-block: 8px; font-size: 14px; }
+  .anav-head { min-height: 46px; padding-bottom: 6px; }
+  .anav-foot { padding-top: 10px; gap: 8px; }
+  .anav-foot .btn { min-height: 44px; }
   .auth { grid-template-columns: minmax(0, 1fr); align-content: start; align-items: start; gap: 0; min-height: calc(100svh - 60px); padding: 12px 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
   .auth-art { justify-self: stretch; max-width: none; height: clamp(132px, 24svh, 210px); min-height: 0; }
   .auth-art img { object-position: 50% 24%; }
